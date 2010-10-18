@@ -1,0 +1,12 @@
+JobQueue
+--------
+
+This is a simple way to run a batch of background tasks, in JavaScript. The concept is basically:
+
+1. Create an instance of the JobQueue class
+2. Create lots of instances of the Job class, and add them to the JobQueue
+3. Run the JobQueue
+
+Could be used to:
+- preload images, AJAX, or other http requests
+- run a sequence of AJAX requests (e.g. for gathering lots of data)
