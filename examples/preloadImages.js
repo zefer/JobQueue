@@ -1,5 +1,6 @@
 $(document).ready(function()
 {
+	example.log("searching for some random photos from Flickr using YQL...");
 	example.getSomePhotosFromFlickr();
 });
 
@@ -10,12 +11,45 @@ var example = {
 // do the example (this fires when we have the sample image data from Flickr)
 example.start = function()
 {
-	example.createJobs();
-	example.processJobQueue();
+	// create a new queue, with a name
+	var jobQueue = new zefer.JobQueue("myPhotoQueue");
+	
+	// add some jobs to the queue
+	example.createAndQueueJobs(jobQueue);
+	
+	example.log("queued-up " + jobQueue.jobs.length + " jobs. Each job is a single image, which will be preloaded in the background.");
+	
+	// listen to the queue progress event, so we can display the progress
+	jobQueue.addEventListener("progress", example.queueProgress);
+	jobQueue.addEventListener("complete", example.queueComplete);
+	
+	example.log("processing queue...");
+	
+	// start processing the queue
+	jobQueue.next();
+}
+
+// listen to queue progress
+example.queueProgress = function(queue, progressData)
+{
+	$("#progress").html("");
+	$("#progress").append($("<div>").html("etaDescription: " + progressData.etaDescription));
+	$("#progress").append($("<div>").html("etaSeconds: " + progressData.etaSeconds));
+	$("#progress").append($("<div>").html("percentComplete: " + progressData.percentComplete));
+	$("#progress").append($("<div>").html("timeTaken: " + progressData.timeTaken));
+};
+example.queueComplete = function(queue)
+{
+	$("#progress").html("Queue complete");
+};
+
+example.log = function(s)
+{
+	$("#log").append(s + "<br>");
 }
 
 // preload an image - this method is the 'Job' that the 'JobQueue' will run
-example.imagePreloadJob = function(args,queue)
+example.imagePreloadJob = function(data,queue)
 {
 	var that = this;
 	
@@ -32,14 +66,12 @@ example.imagePreloadJob = function(args,queue)
 		alert('preloading ABORTED on image <a href="' + img.src + '">' + img.src + '</a>');
 	};
 	
-	img.src = magsoft.connector.getAPIURL("image.getImage", o, magsoft.defaultResponseFormat);
+	img.src = data.url;
 	
 };
 
-example.createJobs = function()
+example.createAndQueueJobs = function(jobQueue)
 {
-	var queue = new zefer.JobQueue("myPhotoQueue");
-	
 	for(var i=0; i<example.flickrPhotoData.length; i++)
 	{
 		var job = new zefer.Job();
@@ -62,20 +94,20 @@ example.createJobs = function()
 		};
 		
 		// queue-up the job
-		queue.addJob(job);
+		jobQueue.addJob(job);
 	}
 }
 
-example.processJobQueue = function()
+example.processJobQueue = function(jobQueue)
 {
-	
+	jobQueue.next();
 }
 
 example.getSomePhotosFromFlickr = function()
 {
 	// get some photos from flickr, using YQL
 	var req = $.ajax({
-		url: "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20flickr.photos.search%20where%20text%3D%22Monkey%22%20limit%2010&format=json",
+		url: "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20flickr.photos.search%20where%20text%3D%22jungle%22%20limit%2010&format=json",
 		dataType: "jsonp",
 		success: function(data, textStatus, XMLHttpRequest) {
 			example.flickrPhotoData = data.query.results.photo;
